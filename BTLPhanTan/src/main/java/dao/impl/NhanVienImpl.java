@@ -7,6 +7,7 @@ import entity.NhanVien;
 import entity.PhongBan;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Persistence;
 
 import java.util.Date;
 import java.util.List;
@@ -14,6 +15,10 @@ import java.util.List;
 public class NhanVienImpl implements GenericDao<NhanVien>, NhanVienDao {
     private EntityManager em;
 
+    public NhanVienImpl() {
+        em = Persistence.createEntityManagerFactory("BTLPhanTan")
+                .createEntityManager();
+    }
     public NhanVienImpl(EntityManager em){
         this.em = em;
         hamTaoMaNhanVien();

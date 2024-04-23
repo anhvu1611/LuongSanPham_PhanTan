@@ -6,11 +6,17 @@ import dao.CongNhanDao;
 import entity.CongNhan;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Persistence;
 
 public class CongNhanImpl implements CongNhanDao{
 	private EntityManager em;
 
-    public CongNhanImpl(EntityManager em){
+	public CongNhanImpl() {
+		em = Persistence.createEntityManagerFactory("BTLPhanTan")
+				.createEntityManager();
+	}
+
+	public CongNhanImpl(EntityManager em){
         this.em = em;
         hamTaoMaCongNhanTiepTheo();
     }

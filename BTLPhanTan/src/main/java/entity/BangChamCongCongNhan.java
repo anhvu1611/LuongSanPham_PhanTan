@@ -52,6 +52,18 @@ public class BangChamCongCongNhan implements Serializable{
 //        this.chamCongDoan = chamCongDoan;
 //    }
 
+
+    public BangChamCongCongNhan(String maBangChamCong, Date ngayChamCong, boolean trangThai, int soLuongSanPhamHoanThanh, NhanVien nguoiChamCong, CongNhan nguoiDuocChamCong, CaLamCongNhan caLam, BangPhanCongCongDoan chamCongDoan) {
+        this.maBangChamCong = maBangChamCong;
+        this.ngayChamCong = ngayChamCong;
+        this.trangThai = trangThai;
+        this.soLuongSanPhamHoanThanh = soLuongSanPhamHoanThanh;
+        this.nguoiChamCong = nguoiChamCong;
+        this.nguoiDuocChamCong = nguoiDuocChamCong;
+        this.caLam = caLam;
+        this.chamCongDoan = chamCongDoan;
+    }
+
     public String getMaBangChamCong() {
         return maBangChamCong;
     }

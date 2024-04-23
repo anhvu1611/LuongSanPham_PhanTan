@@ -23,7 +23,7 @@
 
         <properties>
             <property name="jakarta.persistence.jdbc.url"
-                      value="jdbc:sqlserver://localhost:1433;databaseName=BTLPTFN;trustServerCertificate=
+                      value="jdbc:sqlserver://localhost:1433;databaseName=LuongSanPham;trustServerCertificate=
 true;useUnicode=true;characterEncoding=UTF-8" />
             <property name="jakarta.persistence.jdbc.user" value="sa" />
             <property name="jakarta.persistence.jdbc.password"
