@@ -14,9 +14,13 @@ import java.util.List;
  */
 
 public interface BangPhanCongCongDoanDao {
+	
+	public int laySoLuongDaChamCongTheoMaCongDoan(String maCongDoan);
+	
     public void themPhanCongCongDoan(BangPhanCongCongDoan phanCong);
 
     public void suaPhanCongCongDoan(BangPhanCongCongDoan phanCong);
+   
 
     public void xoaPhanCongCongDoanVaKhoiDs(String maCongDoan, String maCongNhan);
 

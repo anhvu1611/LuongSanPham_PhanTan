@@ -16,12 +16,8 @@ public interface CongDoanDao {
     boolean sua(CongDoan cd);
     CongDoan timKiem(String id);
     List<CongDoan> layDanhSachTheoMaSanPham(String maSanPham);
-
     boolean capNhatTrangThaiCongDoan();
-
     boolean capNhatTrangThaiSanPham();
-
     String layMaCongDoanTiepTheo(String ma);
-
     public int laySoLuongThanhPhanTheoMaCongDoan(String maCongDoan);
 }

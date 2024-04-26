@@ -37,7 +37,7 @@ public class frm_DangNhap extends javax.swing.JFrame {
 	public frm_DangNhap() {
 		
 		try {
-			socket = new Socket("LAPTOP-NU04B44F", 7878);
+			socket = new Socket("localhost", 7878);
 			outData = new DataOutputStream(socket.getOutputStream());
 			in = new ObjectInputStream(socket.getInputStream());
 
@@ -315,6 +315,8 @@ public class frm_DangNhap extends javax.swing.JFrame {
 					} else {
 						JOptionPane.showMessageDialog(null, "Đăng nhập thành công");
 						NhanVien nv = (NhanVien) in.readObject();
+						System.out.println("Nhan Vien");
+						System.out.println(nv.getMaNhanSu());
 						this.dispose();
 
 						GUI_APP gui_APP = new GUI_APP(nv, outData, in, socket);

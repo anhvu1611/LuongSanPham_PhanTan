@@ -6,6 +6,7 @@ package entity;
 
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 
@@ -16,7 +17,7 @@ import java.time.LocalDate;
 
 @Entity
 @IdClass(BangPhanCongCongDoan_ID.class)
-public class BangPhanCongCongDoan {
+public class BangPhanCongCongDoan implements Serializable {
     private int soLuongPhanCong;
 	@Id
 	@ManyToOne

@@ -8,6 +8,7 @@ package form;
 import entity.BangPhanCongCongDoan;
 import entity.CongDoan;
 import entity.CongNhan;
+import entity.LocalDateAdapter;
 import entity.SanPham;
 import gui.GUI_APP;
 
@@ -23,6 +24,10 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -31,6 +36,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.Socket;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.awt.event.ActionEvent;
@@ -53,7 +62,13 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 	/**
 	 * Creates new form PanelPhanCongCongDoan
 	 */
-	public PanelPhanCongCongDoan() {
+	Socket socket;
+	DataOutputStream out;
+	ObjectInputStream in;
+	public PanelPhanCongCongDoan(DataOutputStream out, ObjectInputStream in, Socket socket) {
+		this.out = out;
+		this.in = in;
+		this.socket = socket;
 		initComponents();
 		hienThiDanhSachSanPhamChuaHoanThanh();
 		hienThiDanhSachSanPhamTheoLuaChon();
@@ -61,6 +76,58 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 		addSearchListenerCongNhan();
 		addSearchListenerPhanCong();
 		addSearchListenerCongDoan();
+		
+	}
+	
+	private int laySoLuongDaChamCongTheoMaCongDoan(String maCongDoan) { 
+		int SoLuongDaChamCongTheoMaCongDoan = 0; 
+		try {
+			out.writeUTF("GD_PHANCONG");
+			out.writeInt(5);
+			out.writeUTF(maCongDoan);
+			SoLuongDaChamCongTheoMaCongDoan= (Integer) in.readObject(); 
+			out.flush();
+		} catch (IOException | ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return SoLuongDaChamCongTheoMaCongDoan;
+	}
+
+	private int laySoLuongThanhPhanTheoMaCongDoan(String maCongDoan) { 
+		int SoLuongDaChamCongTheoMaCongDoan = 0; 
+		try {
+			out.writeUTF("GD_PHANCONG");
+			out.writeInt(2);
+			out.writeUTF(maCongDoan);
+			SoLuongDaChamCongTheoMaCongDoan= (Integer) in.readObject(); 
+			out.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return SoLuongDaChamCongTheoMaCongDoan;
+	}
+
+	private int tinhTongSoLuongPhanCongTheoMaCongDoan(String maCongDoan) { 
+		try {
+			out.writeUTF("GD_PHANCONG");
+			out.writeInt(3);
+			out.writeUTF(maCongDoan);
+			int soLuongPCTheoMaCongDoan= (Integer) in.readObject(); 
+			out.flush();
+			return soLuongPCTheoMaCongDoan;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return 0; 
 	}
 
 	/**
@@ -138,16 +205,25 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 					maCongDoanSelected = tblDSCongDoan.getValueAt(selectedRowCongDoan, 1) != null ?
 							tblDSCongDoan.getValueAt(selectedRowCongDoan, 1).toString() : "";
 
-					if (maCongDoanSelected.startsWith("CD0001")) {
-						openPhanCongDialogTuDong(maCongDoanSelected);
-					} else if (maCongDoanSelected.startsWith("CD0002")) {
-						openPhanCongDialogTuDong(maCongDoanSelected);
-					} else if (maCongDoanSelected.startsWith("CD0003")) {
-						openPhanCongDialogTuDong(maCongDoanSelected);
-					} else if (maCongDoanSelected.startsWith("CD0004")) {
-						openPhanCongDialogTuDong(maCongDoanSelected);
-					} else {
-						hienThongBaoLoi("Công đoạn không hợp lệ.");
+					try {
+						if (maCongDoanSelected.startsWith("CD0001")) {
+								openPhanCongDialogTuDong(maCongDoanSelected);
+							
+						} else if (maCongDoanSelected.startsWith("CD0002")) {
+							openPhanCongDialogTuDong(maCongDoanSelected);
+						} else if (maCongDoanSelected.startsWith("CD0003")) {
+							openPhanCongDialogTuDong(maCongDoanSelected);
+						} else if (maCongDoanSelected.startsWith("CD0004")) {
+							openPhanCongDialogTuDong(maCongDoanSelected);
+						} else {
+							hienThongBaoLoi("Công đoạn không hợp lệ.");
+						}
+					} catch (ClassNotFoundException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
 					}
 				} else {
 					hienThongBaoLoi("Vui lòng chọn một công đoạn từ bảng trước khi thực hiện phân công.");
@@ -214,25 +290,45 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 
 					if (maCongDoanSelected.startsWith("CD0001")) {
 						if (selectedRowCongNhan >= 0) {
-							openPhanCongDialogThemCatGo();
+							try {
+								openPhanCongDialogThemCatGo();
+							} catch (ClassNotFoundException | IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 						} else {
 							hienThongBaoLoi("Vui lòng chọn một công nhân từ bảng công nhân trước khi thực hiện phân công.");
 						}
 					} else if (maCongDoanSelected.startsWith("CD0002")) {
 						if (selectedRowCongNhan >= 0) {
-							openPhanCongDialogThemCheTac();
+							try {
+								openPhanCongDialogThemCheTac();
+							} catch (ClassNotFoundException | IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 						} else {
 							hienThongBaoLoi("Vui lòng chọn một công nhân từ bảng công nhân trước khi thực hiện phân công.");
 						}
 					} else if (maCongDoanSelected.startsWith("CD0003")) {
 						if (selectedRowCongNhan >= 0) {
-							openPhanCongDialogThemBeMat();
+							try {
+								openPhanCongDialogThemBeMat();
+							} catch (ClassNotFoundException | IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 						} else {
 							hienThongBaoLoi("Vui lòng chọn một công nhân từ bảng công nhân trước khi thực hiện phân công.");
 						}
 					} else if (maCongDoanSelected.startsWith("CD0004")) {
 						if (selectedRowCongNhan >= 0) {
-							openPhanCongDialogThemLapRap();
+							try {
+								openPhanCongDialogThemLapRap();
+							} catch (ClassNotFoundException | IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
 						} else {
 							hienThongBaoLoi("Vui lòng chọn một công nhân từ bảng công nhân trước khi thực hiện phân công.");
 						}
@@ -256,7 +352,7 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 
 		lblDSPhanCong = new JLabel("Tìm kiếm");
 
-		btnXoaPhanCong = new JButton("Xóa");
+		btnXoaPhanCong = new JButton("");
 		btnXoaPhanCong.setFont(new Font("Segoe UI", Font.BOLD, 12));
 		btnXoaPhanCong.addActionListener(new ActionListener() {
 		    @Override
@@ -268,7 +364,12 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 		        }
 
 		        // Continue with the rest of your code
-		        openPhanCongDialogXoa();
+		        try {
+					openPhanCongDialogXoa();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 		    }
 		});
 
@@ -284,7 +385,15 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 					// Lấy thông tin từ hàng đã chọn
 					maCongNhanSelected = tblDSPhanCong.getValueAt(selectedRow, 1) != null ? tblDSPhanCong.getValueAt(selectedRow, 1).toString() : "";
 
-					openPhanCongDialogSua();
+					try {
+						openPhanCongDialogSua();
+					} catch (ClassNotFoundException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				} else {
 					// Hiển thị thông báo nếu không có hàng nào được chọn
 					hienThongBaoLoi("Vui lòng chọn một công nhân từ bảng trước khi thực hiện sửa.");
@@ -592,13 +701,29 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 
 
 	void hienThiDanhSachSanPhamChuaHoanThanh() {
-		ArrayList<SanPham> dsSanPham = null;
-//				dao.layDanhSachSanPhamChuaHoanThanh();
-		hienThiDanhSachSanPham(dsSanPham);
+		// ArrayList<SanPham> dsSanPham = null;
+		try {
+			out.writeUTF("GD_CONGDOAN");
+			out.writeInt(1);
+			out.flush();
+			ArrayList<SanPham> dsSanPham = (ArrayList<SanPham>) in.readObject();
+			hienThiDanhSachSanPham(dsSanPham);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+//				dao.layDanhSachSanPhamChuaHoanThanh(); oke
+
+		
 	}
 
 	void hienThiDanhSachSanPhamDaHoanThanh() {
-		ArrayList<SanPham> dsSanPham = null;
+		ArrayList<SanPham> dsSanPham = new ArrayList<>();
 //				dao.layDanhSachSanPhamDaHoanThanh();
 		hienThiDanhSachSanPham(dsSanPham);
 	}
@@ -608,7 +733,8 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 		model.setRowCount(0); // Xóa hết các dòng hiện tại trong table
 
 		int stt = 1; // Biến đếm
-
+		if(dsSanPham == null) 
+			dsSanPham = new ArrayList<>();
 		for (SanPham sp : dsSanPham) {
 			Object[] row = {
 					stt,
@@ -621,25 +747,49 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 	}
 
 	private void hienThiDanhSachCongDoanTheoSPChuaHoanThanh(String maSP) {
-//		ArrayList<CongDoan> dsCongDoan = null;
-////				dao.layDanhSachCongDoanTheoSP(maSP);
-//		daoCongDoan.setDs(dsCongDoan);
-//		DefaultTableModel model = (DefaultTableModel) tblDSCongDoan.getModel();
-//		model.setRowCount(0); // Xóa hết các dòng hiện tại trong table
-//		int stt = 1; // Biến đếm
-//		DAO_BangPhanCongCongDoan dao_BangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//		for (CongDoan congDoan : dsCongDoan) {
-//			Object[] row = {
-//					stt,
-//					congDoan.getMaCongDoan(),
-//					congDoan.getLoaiCongDoan(),
-//					congDoan.getSoLuongThanhPhan(),
-//					congDoan.getSoLuongThanhPhan() - dao_BangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(congDoan.getMaCongDoan()),
-//					congDoan.getSoCongNhan()
-//			};
-//			model.addRow(row);
-//			stt++; // Tăng giá trị của biến đếm
-//		}
+		ArrayList<CongDoan> dsCongDoan = new ArrayList<CongDoan>();
+		try {
+			out.writeUTF("GD_CONGDOAN");
+			out.writeInt(3);
+			out.writeUTF(maSP);
+			out.flush();
+			dsCongDoan = (ArrayList<CongDoan>) in.readObject();
+//					dao.layDanhSachCongDoanTheoSP(maSP); oke
+			DefaultTableModel model = (DefaultTableModel) tblDSCongDoan.getModel();
+			model.setRowCount(0); // Xóa hết các dòng hiện tại trong table
+			int stt = 1; // Biến đếm
+
+
+			for (CongDoan congDoan : dsCongDoan) {
+				int tongSoLuongPhanCong = 0; 
+				String macd = congDoan.getMaCongDoan(); 
+				// dao_BangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(congDoan.getMaCongDoan()) oke
+				out.writeUTF("GD_PHANCONG");
+				out.writeInt(1);
+				out.writeUTF(macd);
+				tongSoLuongPhanCong = (Integer)in.readObject(); 
+				out.flush();
+				Object[] row = {
+						stt,
+						congDoan.getMaCongDoan(),
+						congDoan.getLoaiCongDoan(),
+						congDoan.getSoLuongThanhPhan(),
+						congDoan.getSoLuongThanhPhan() - tongSoLuongPhanCong,
+						congDoan.getSoCongNhan()
+				};
+				model.addRow(row);
+				stt++; // Tăng giá trị của biến đếm
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
 	}
 	private void hienThiDanhSachCongDoanTheoSPDaHoanThanh(String maSP) {
 //		DAO_CongDoan dao = new DAO_CongDoan();
@@ -749,507 +899,847 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 		}
 	}
 //	BangChamCongCongNhan_Dao bangChamCongCongNhan_Dao = new BangChamCongCongNhan_Dao();
-	private void openPhanCongDialogThemCatGo() {
-//		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		JTextField txtNhapSoLuongThem = new JTextField();
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
-//		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		String maCongDoan = maCongDoanSelected;
-//		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//		int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
-//
-//		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
-//		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
-//			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
-//			return;
-//		}
-//
-//		JPanel panel = new JPanel(new GridLayout(2, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblNhapSoLuongThem);
-//		panel.add(txtNhapSoLuongThem);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String soLuongThem = txtNhapSoLuongThem.getText();
-//
-//			try {
-//				int soLuongThemInt = Integer.parseInt(soLuongThem);
-//
-//				if (soLuongThemInt <= 0) {
-//					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
-//				} else if (soLuongThemInt > soLuongConLai) {
-//					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng còn lại.");
-//				} else {
-//					int selectedRowDSCN = tblDSCN.getSelectedRow();
-//					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
-//					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//					int selecRowDSSP = tblDSSP.getSelectedRow();
-//					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
-//					int soLuongPhanCong = soLuongThemInt;
-//					LocalDate ngayPhanCong = LocalDate.now();
-//					CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//					CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
-//					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//					bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
-//					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				}
-//			} catch (NumberFormatException e) {
-//				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
-//			}
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+	private void openPhanCongDialogThemCatGo() throws IOException, ClassNotFoundException {
+		System.out.println("hello world openPhanCongDialogThemCatGo");
+		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		JTextField txtNhapSoLuongThem = new JTextField();
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		String maCongDoan = maCongDoanSelected;
+		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+		
+		//dao1`
+		int soLuongTPTheoMaCongDoan=0; 
+		int soLuongPCTheoMaCongDoan=0; 
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(2);
+		out.writeUTF(maCongDoan);
+		soLuongTPTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(3);
+		out.writeUTF(maCongDoan);
+		soLuongPCTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+
+		// int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongConLai = soLuongTPTheoMaCongDoan - soLuongPCTheoMaCongDoan;
+
+
+
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
+
+		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
+		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
+			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
+			return;
+		}
+
+		JPanel panel = new JPanel(new GridLayout(2, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblNhapSoLuongThem);
+		panel.add(txtNhapSoLuongThem);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String soLuongThem = txtNhapSoLuongThem.getText();
+
+			try {
+				int soLuongThemInt = Integer.parseInt(soLuongThem);
+
+				if (soLuongThemInt <= 0) {
+					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
+				} else if (soLuongThemInt > soLuongConLai) {
+					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng còn lại.");
+				} else {
+					int selectedRowDSCN = tblDSCN.getSelectedRow();
+					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
+					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+					int selecRowDSSP = tblDSSP.getSelectedRow();
+					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
+					int soLuongPhanCong = soLuongThemInt;
+					LocalDate ngayPhanCong = LocalDate.now();
+
+					//dao2
+						//		CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+						//		CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+					System.out.println("cong doan: " + congDoan.getMaCongDoan());
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+					System.out.println("cong nhan: " + congNhan.getMaNhanSu());
+					
+					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+
+					//		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
+                    //     		String json = in.readUTF();
+                    //     		BangPhanCongCongDoan phanCong = gson.fromJson(json, BangPhanCongCongDoan.class);
+                    //     		System.out.println("phan cong: " + phanCong);
+                    //     		bangPhanCongCongDoanDao.themPhanCongCongDoan(phanCong);
+					// bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
+					
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(4);
+					out.writeUTF(json);
+					out.flush();
+					
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
+					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				}
+			} catch (NumberFormatException e) {
+				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
+			}
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
-	private void openPhanCongDialogThemCheTac() {
-//		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		JTextField txtNhapSoLuongThem = new JTextField();
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
-//		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		String maCongDoan = maCongDoanSelected;
-//		String maCongDoanCatGo = tblDSCongDoan.getValueAt(0, 1).toString();
-//		System.out.println(maCongDoanCatGo);
-//		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//		int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
-//		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
-//		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
-//
-//		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
-//		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
-//			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
-//			return;
-//		}
-//		if (soLuongCoTheThem == 0) {
-//			hienThongBaoLoi("Không đủ số lượng để phân công.");
-//			return;
-//		}
-//		JPanel panel = new JPanel(new GridLayout(3, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblSoLuongCoTheThem);
-//		panel.add(lblSoLuongCoTheThemHienThi);
-//		panel.add(lblNhapSoLuongThem);
-//		panel.add(txtNhapSoLuongThem);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String soLuongThem = txtNhapSoLuongThem.getText();
-//
-//			try {
-//				int soLuongThemInt = Integer.parseInt(soLuongThem);
-//
-//				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
-//				if (soLuongThemInt <= 0) {
-//					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
-//				} else if (soLuongThemInt > soLuongCoTheThem) {
-//					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
-//					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
-//				} else {
-//					// Lấy dữ liệu từ tblDSCN
-//					int selectedRowDSCN = tblDSCN.getSelectedRow();
-//					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
-//					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//					int selecRowDSSP = tblDSSP.getSelectedRow();
-//					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
-//					int soLuongPhanCong = soLuongThemInt;
-//					LocalDate ngayPhanCong = LocalDate.now();
-//					CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//					CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
-//					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//					bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
-//					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				}
-//			} catch (NumberFormatException e) {
-//				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
-//			}
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+	private void openPhanCongDialogThemCheTac() throws IOException, ClassNotFoundException {
+		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		JTextField txtNhapSoLuongThem = new JTextField();
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+		// DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
+
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		String maCongDoan = maCongDoanSelected;
+		String maCongDoanCatGo = tblDSCongDoan.getValueAt(0, 1).toString();
+		System.out.println(maCongDoanCatGo);
+		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+
+
+
+		int soLuongTPTheoMaCongDoan=0; 
+		int soLuongPCTheoMaCongDoan=0; 
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(2);
+		out.writeUTF(maCongDoan);
+		soLuongTPTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(3);
+		out.writeUTF(maCongDoan);
+		soLuongPCTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		// int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongConLai = soLuongTPTheoMaCongDoan - soLuongPCTheoMaCongDoan;
+
+		
+
+		int SoLuongDaChamCongTheoMaCongDoan=0; 
+		int TongSoLuongPhanCongTheoMaCongDoan=0; 
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(5);
+		out.writeUTF(maCongDoan);
+		SoLuongDaChamCongTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(1);
+		out.writeUTF(maCongDoan);
+		TongSoLuongPhanCongTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+		// int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo) - 
+		//bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongCoTheThem = SoLuongDaChamCongTheoMaCongDoan - TongSoLuongPhanCongTheoMaCongDoan; 
+
+
+
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
+		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
+		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
+
+		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
+		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
+			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
+			return;
+		}
+		if (soLuongCoTheThem == 0) {
+			hienThongBaoLoi("Không đủ số lượng để phân công.");
+			return;
+		}
+		JPanel panel = new JPanel(new GridLayout(3, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblSoLuongCoTheThem);
+		panel.add(lblSoLuongCoTheThemHienThi);
+		panel.add(lblNhapSoLuongThem);
+		panel.add(txtNhapSoLuongThem);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String soLuongThem = txtNhapSoLuongThem.getText();
+
+			try {
+				int soLuongThemInt = Integer.parseInt(soLuongThem);
+
+				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
+				if (soLuongThemInt <= 0) {
+					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
+				} else if (soLuongThemInt > soLuongCoTheThem) {
+					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
+					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
+				} else {
+					// Lấy dữ liệu từ tblDSCN
+					int selectedRowDSCN = tblDSCN.getSelectedRow();
+					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
+					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+					int selecRowDSSP = tblDSSP.getSelectedRow();
+					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
+					int soLuongPhanCong = soLuongThemInt;
+					LocalDate ngayPhanCong = LocalDate.now();
+					
+					// CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+					// CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+
+
+
+					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+					// bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(4);
+					out.writeUTF(json);
+					out.flush();
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
+					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				}
+			} catch (NumberFormatException e) {
+				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
+			}
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
 	int soLuongDaLamBeMat;
-	private void openPhanCongDialogThemBeMat() {
-//		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		String maCongDoanCheTac = tblDSCongDoan.getValueAt(1, 1).toString();
-//		JTextField txtNhapSoLuongThem = new JTextField();
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+	private void openPhanCongDialogThemBeMat() throws IOException, ClassNotFoundException {
+		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		String maCongDoanCheTac = tblDSCongDoan.getValueAt(1, 1).toString();
+		JTextField txtNhapSoLuongThem = new JTextField();
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
 //		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		String maCongDoan = maCongDoanSelected;
-//		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//		int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
-//		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
-//		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
-//
-//		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
-//		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
-//			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
-//			return;
-//		}
-//		if (soLuongCoTheThem == 0) {
-//			hienThongBaoLoi("Không đủ số lượng để phân công.");
-//			return;
-//		}
-//		JPanel panel = new JPanel(new GridLayout(3, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblSoLuongCoTheThem);
-//		panel.add(lblSoLuongCoTheThemHienThi);
-//		panel.add(lblNhapSoLuongThem);
-//		panel.add(txtNhapSoLuongThem);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String soLuongThem = txtNhapSoLuongThem.getText();
-//
-//			try {
-//				int soLuongThemInt = Integer.parseInt(soLuongThem);
-//
-//				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
-//				if (soLuongThemInt <= 0) {
-//					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
-//				} else if (soLuongThemInt > soLuongCoTheThem) {
-//					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
-//					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
-//				} else {
-//					// Lấy dữ liệu từ tblDSCN
-//					int selectedRowDSCN = tblDSCN.getSelectedRow();
-//					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
-//					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//					int selecRowDSSP = tblDSSP.getSelectedRow();
-//					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
-//					int soLuongPhanCong = soLuongThemInt;
-//					LocalDate ngayPhanCong = LocalDate.now();
-//					CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//					CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
-//					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//					bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
-//					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				}
-//			} catch (NumberFormatException e) {
-//				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
-//			}
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		String maCongDoan = maCongDoanSelected;
+		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+
+
+
+		// int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - \
+		// bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongTPTheoMaCongDoan=0; 
+		int soLuongPCTheoMaCongDoan=0; 
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(2);
+		out.writeUTF(maCongDoan);
+		soLuongTPTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(3);
+		out.writeUTF(maCongDoan);
+		soLuongPCTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+		int soLuongConLai = soLuongTPTheoMaCongDoan - soLuongPCTheoMaCongDoan;
+
+
+		int SoLuongDaChamCongTheoMaCongDoan = 0; 
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(5);
+		out.writeUTF(maCongDoan);
+		SoLuongDaChamCongTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+		// int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-
+		// bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongCoTheThem = SoLuongDaChamCongTheoMaCongDoan-soLuongPCTheoMaCongDoan;
+
+
+
+		
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
+		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
+		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
+
+		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
+		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
+			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
+			return;
+		}
+		if (soLuongCoTheThem == 0) {
+			hienThongBaoLoi("Không đủ số lượng để phân công.");
+			return;
+		}
+		JPanel panel = new JPanel(new GridLayout(3, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblSoLuongCoTheThem);
+		panel.add(lblSoLuongCoTheThemHienThi);
+		panel.add(lblNhapSoLuongThem);
+		panel.add(txtNhapSoLuongThem);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String soLuongThem = txtNhapSoLuongThem.getText();
+
+			try {
+				int soLuongThemInt = Integer.parseInt(soLuongThem);
+
+				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
+				if (soLuongThemInt <= 0) {
+					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
+				} else if (soLuongThemInt > soLuongCoTheThem) {
+					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
+					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
+				} else {
+					// Lấy dữ liệu từ tblDSCN
+					int selectedRowDSCN = tblDSCN.getSelectedRow();
+					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
+					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+					int selecRowDSSP = tblDSSP.getSelectedRow();
+					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
+					int soLuongPhanCong = soLuongThemInt;
+					LocalDate ngayPhanCong = LocalDate.now();
+
+					// CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+					// CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
+					
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+
+
+					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+					// bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(4);
+					out.writeUTF(json);
+					out.flush();
+
+
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
+					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				}
+			} catch (NumberFormatException e) {
+				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
+			}
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
-	private void openPhanCongDialogThemLapRap() {
-//		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		String maCongDoanBeMat = tblDSCongDoan.getValueAt(2, 1).toString();
-//		JTextField txtNhapSoLuongThem = new JTextField();
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+	private void openPhanCongDialogThemLapRap() throws IOException, ClassNotFoundException {
+		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		String maCongDoanBeMat = tblDSCongDoan.getValueAt(2, 1).toString();
+		JTextField txtNhapSoLuongThem = new JTextField();
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
 //		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//		DAO_CongDoan daoCongDoan = new DAO_CongDoan();
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		String maCongDoan = maCongDoanSelected;
-//		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//		int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanBeMat)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
-//		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
-//		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
-//
-//		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
-//		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
-//			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
-//			return;
-//		}
-//		if (soLuongCoTheThem == 0) {
-//			hienThongBaoLoi("Không đủ số lượng để phân công.");
-//			return;
-//		}
-//		JPanel panel = new JPanel(new GridLayout(3, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblSoLuongCoTheThem);
-//		panel.add(lblSoLuongCoTheThemHienThi);
-//		panel.add(lblNhapSoLuongThem);
-//		panel.add(txtNhapSoLuongThem);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String soLuongThem = txtNhapSoLuongThem.getText();
-//
-//			try {
-//				int soLuongThemInt = Integer.parseInt(soLuongThem);
-//
-//				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
-//				if (soLuongThemInt <= 0) {
-//					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
-//				} else if (soLuongThemInt > soLuongCoTheThem) {
-//					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
-//					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
-//				} else {
-//					// Lấy dữ liệu từ tblDSCN
-//					int selectedRowDSCN = tblDSCN.getSelectedRow();
-//					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
-//					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//					int selecRowDSSP = tblDSSP.getSelectedRow();
-//					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
-//					int soLuongPhanCong = soLuongThemInt;
-//					LocalDate ngayPhanCong = LocalDate.now();
-//					CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//					CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
-//					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//					bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
-//					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				}
-//			} catch (NumberFormatException e) {
-//				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
-//			}
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+		// DAO_CongDoan daoCongDoan = new DAO_CongDoan();
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		String maCongDoan = maCongDoanSelected;
+		int soLuongToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+
+
+
+		// int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		// int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanBeMat)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongTPTheoMaCongDoan=0; 
+		int soLuongPCTheoMaCongDoan=0; 
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(2);
+		out.writeUTF(maCongDoan);
+		soLuongTPTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(3);
+		out.writeUTF(maCongDoan);
+		soLuongPCTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+		int soLuongConLai = soLuongTPTheoMaCongDoan - soLuongPCTheoMaCongDoan;
+
+
+		int SoLuongDaChamCongTheoMaCongDoan = 0; 
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(5);
+		out.writeUTF(maCongDoan);
+		SoLuongDaChamCongTheoMaCongDoan= (Integer) in.readObject(); 
+		out.flush();
+		// int soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		int soLuongCoTheThem = SoLuongDaChamCongTheoMaCongDoan-soLuongPCTheoMaCongDoan;
+
+
+
+
+
+
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng thêm:");
+		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
+		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
+
+		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
+		if (soLuongToiDa - soLuongCongNhanDaPhanCong < 0) {
+			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
+			return;
+		}
+		if (soLuongCoTheThem == 0) {
+			hienThongBaoLoi("Không đủ số lượng để phân công.");
+			return;
+		}
+		JPanel panel = new JPanel(new GridLayout(3, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblSoLuongCoTheThem);
+		panel.add(lblSoLuongCoTheThemHienThi);
+		panel.add(lblNhapSoLuongThem);
+		panel.add(txtNhapSoLuongThem);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thủ công", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String soLuongThem = txtNhapSoLuongThem.getText();
+
+			try {
+				int soLuongThemInt = Integer.parseInt(soLuongThem);
+
+				// Kiểm tra nếu số lượng thêm vào lớn hơn 0
+				if (soLuongThemInt <= 0) {
+					hienThongBaoLoi("Số lượng thêm phải lớn hơn 0.");
+				} else if (soLuongThemInt > soLuongCoTheThem) {
+					// Kiểm tra nếu số lượng thêm vào lớn hơn số lượng có thể thêm
+					hienThongBaoLoi("Số lượng thêm phải nhỏ hơn hoặc bằng số lượng có thể thêm.");
+				} else {
+					// Lấy dữ liệu từ tblDSCN
+					int selectedRowDSCN = tblDSCN.getSelectedRow();
+					String maCongNhan = tblDSCN.getValueAt(selectedRowDSCN, 1).toString();
+					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+					int selecRowDSSP = tblDSSP.getSelectedRow();
+					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
+					int soLuongPhanCong = soLuongThemInt;
+					LocalDate ngayPhanCong = LocalDate.now();
+
+					// CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+					// CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+
+					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(4);
+					out.writeUTF(json);
+					out.flush();
+					// bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+					System.out.println("Đã phân công " + soLuongThemInt + " công việc.");
+					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				}
+			} catch (NumberFormatException e) {
+				hienThongBaoLoi("Nhập số lượng thêm không hợp lệ!");
+			}
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
 //	DAO_CongDoan daoCongDoan = new DAO_CongDoan();
-	private void openPhanCongDialogTuDong(String maCongDoanSelected) {
-//		int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		int selectedRowDSSP = tblDSSP.getSelectedRow();
-//		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		int soLuongCongNhanToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//		String maCongDoan = maCongDoanSelected;
-//		int soLuongConLai = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 4).toString());
-//		int soLuongCongNhanDaPhanCongTrongDSPhanCong = bangPhanCongCongDoan.laySoLuongPhanCong(maCongDoan);
-//		System.out.println("So luong trong danh sach "+ soLuongCongNhanDaPhanCongTrongDSPhanCong);
-//		int soLuongCongNhanThemVao = soLuongCongNhanToiDa - soLuongCongNhanDaPhanCongTrongDSPhanCong;
-//		if(soLuongCongNhanThemVao > soLuongCongNhanTrongDSCN)
-//			soLuongCongNhanThemVao = soLuongCongNhanTrongDSCN-1;
-//		System.out.println("So luong cong nhan them vao" + soLuongCongNhanThemVao);
-//		// Xác định giá trị của soLuongCoTheThem dựa vào loại công đoạn
-//		int soLuongCoTheThem = 0;
-//		if (maCongDoan.startsWith("CD0001")) {
-//			soLuongCoTheThem = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 4).toString());
-//		} else if (maCongDoan.startsWith("CD0002")) {
-//			String maCongDoanCatGo = "CD0001" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
-//			soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		} else if (maCongDoan.startsWith("CD0003")) {
-//			String maCongDoanCheTac = "CD0002" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
-//			soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		} else if (maCongDoan.startsWith("CD0004")) {
-//			String maCongDoanBeMat = "CD0003" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
-//			soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanBeMat)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
-//		}
-//		if (soLuongCoTheThem == 0) {
-//			hienThongBaoLoi("Không đủ số lượng để phân công.");
-//			return;
-//		}
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
-//		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
-//
-//		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
-//		if (soLuongCongNhanToiDa - soLuongCongNhanDaPhanCong < 0) {
-//			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
-//			return;
-//		}
-//
-//		JPanel panel = new JPanel(new GridLayout(2, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblSoLuongCoTheThem);
-//		panel.add(lblSoLuongCoTheThemHienThi);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công tự động", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//			int soLuongThemInt = soLuongCoTheThem / soLuongCongNhanThemVao;
-//			String maSanPham = tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 1).toString();
-//			int rowCount = tblDSCN.getRowCount();
-//			int soLuongPhanCong = (soLuongThemInt == 0) ? 1 : soLuongThemInt;
-//			if (rowCount > 0) {
-//			    int loopLimit = Math.min(soLuongCongNhanThemVao, rowCount);		
-//			    for (int i = 0; i < loopLimit; i++) {
-//			        Object value = tblDSCN.getValueAt(i, 1);
-//			        String maCongNhan = (value != null) ? value.toString() : null;       
-//			        LocalDate ngayPhanCong = LocalDate.now();
-//			        CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//			        CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);			        
-//			        BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//			        bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);	        
-//			        soLuongCoTheThem -= soLuongPhanCong;			        
-//			    }
-//
-//			    // Thực hiện phần sau vòng lặp for ngoài
-//			    for (int i = 0; i < loopLimit; i++) {
-//			        if (soLuongCoTheThem >= 1) {
-//			            Object value = tblDSCN.getValueAt(i, 1);
-//			            String maCongNhanLai = (value != null) ? value.toString() : null;
-//			            CongNhan congNhanLai = congNhan_Dao.timCongNhanBangMa(maCongNhanLai);
-//			            LocalDate ngayPhanCong = LocalDate.now();
-//			            CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//			            BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(1 + soLuongPhanCong, congDoan, congNhanLai, ngayPhanCong);
+
+	
+	
+	private void openPhanCongDialogTuDong(String maCongDoanSelected) throws ClassNotFoundException, IOException {
+		int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		int selectedRowDSSP = tblDSSP.getSelectedRow();
+		// DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		int soLuongCongNhanToiDa = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 5).toString());
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+		String maCongDoan = maCongDoanSelected;
+		int soLuongConLai = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 4).toString());
+
+		// int soLuongCongNhanDaPhanCongTrongDSPhanCong = bangPhanCongCongDoan.laySoLuongPhanCong(maCongDoan);
+		int soLuongCongNhanDaPhanCongTrongDSPhanCong = 0;
+		out.writeUTF("GD_PHANCONG");
+		out.writeInt(2);
+		out.writeUTF(maCongDoan);
+		soLuongCongNhanDaPhanCongTrongDSPhanCong= (Integer) in.readObject(); 
+		out.flush();
+
+		System.out.println("So luong trong danh sach "+ soLuongCongNhanDaPhanCongTrongDSPhanCong);
+		int soLuongCongNhanThemVao = soLuongCongNhanToiDa - soLuongCongNhanDaPhanCongTrongDSPhanCong;
+		if(soLuongCongNhanThemVao > soLuongCongNhanTrongDSCN)
+			soLuongCongNhanThemVao = soLuongCongNhanTrongDSCN-1;
+		System.out.println("So luong cong nhan them vao" + soLuongCongNhanThemVao);
+		// Xác định giá trị của soLuongCoTheThem dựa vào loại công đoạn
+		int soLuongCoTheThem = 0;
+		if (maCongDoan.startsWith("CD0001")) {
+			soLuongCoTheThem = Integer.parseInt(tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 4).toString());
+		} else if (maCongDoan.startsWith("CD0002")) {
+			String maCongDoanCatGo = "CD0001" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
+			// soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+			soLuongCoTheThem = laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo)-tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		} else if (maCongDoan.startsWith("CD0003")) {
+			String maCongDoanCheTac = "CD0002" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
+			// soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+			soLuongCoTheThem = laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCheTac)-tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		} else if (maCongDoan.startsWith("CD0004")) {
+			String maCongDoanBeMat = "CD0003" + tblDSSP.getValueAt(selectedRowDSSP, 1).toString();
+			// soLuongCoTheThem = bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanBeMat)-bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+			soLuongCoTheThem = laySoLuongDaChamCongTheoMaCongDoan(maCongDoanBeMat)-tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+		}
+		if (soLuongCoTheThem == 0) {
+			hienThongBaoLoi("Không đủ số lượng để phân công.");
+			return;
+		}
+
+
+
+
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblSoLuongCoTheThem = new JLabel("Số lượng có thể thêm:");
+		JLabel lblSoLuongCoTheThemHienThi = new JLabel(String.valueOf(soLuongCoTheThem));
+
+		// Kiểm tra số lượng công nhân phân công đã tối đa trước khi mở hộp thoại
+		if (soLuongCongNhanToiDa - soLuongCongNhanDaPhanCong < 0) {
+			hienThongBaoLoi("Số lượng công nhân phân công đã tối đa.");
+			return;
+		}
+
+		JPanel panel = new JPanel(new GridLayout(2, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblSoLuongCoTheThem);
+		panel.add(lblSoLuongCoTheThemHienThi);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công tự động", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+			int soLuongThemInt = soLuongCoTheThem / soLuongCongNhanThemVao;
+			String maSanPham = tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 1).toString();
+			int rowCount = tblDSCN.getRowCount();
+			int soLuongPhanCong = (soLuongThemInt == 0) ? 1 : soLuongThemInt;
+			if (rowCount > 0) {
+			    int loopLimit = Math.min(soLuongCongNhanThemVao, rowCount);		
+			    for (int i = 0; i < loopLimit; i++) {
+			        Object value = tblDSCN.getValueAt(i, 1);
+			        String maCongNhan = (value != null) ? value.toString() : null;       
+			        LocalDate ngayPhanCong = LocalDate.now();
+
+
+			        // CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+			        // CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);		
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+
+
+			        BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+			        // bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);	
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(4);
+					out.writeUTF(json);
+					out.flush();        
+			        soLuongCoTheThem -= soLuongPhanCong;			        
+			    }
+
+			    // Thực hiện phần sau vòng lặp for ngoài
+			    for (int i = 0; i < loopLimit; i++) {
+			        if (soLuongCoTheThem >= 1) {
+			            Object value = tblDSCN.getValueAt(i, 1);
+			            String maCongNhanLai = (value != null) ? value.toString() : null;
+			            // CongNhan congNhanLai = congNhan_Dao.timCongNhanBangMa(maCongNhanLai);
+						CongNhan congNhanLai = new CongNhan(); 
+						out.writeUTF("CONGNHAN");
+						out.writeInt(1);
+						out.writeUTF(maCongNhanLai);
+						out.flush();
+						congNhanLai = (CongNhan)in.readObject();
+
+
+			            LocalDate ngayPhanCong = LocalDate.now();
+
+
+			            // CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+						CongDoan congDoan = new CongDoan();
+						out.writeUTF("GD_CONGDOAN");
+						out.writeInt(4);
+						out.writeUTF(maCongDoan);
+						out.flush();
+						congDoan = (CongDoan)in.readObject();
+
+
+
+			            BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(1 + soLuongPhanCong, congDoan, congNhanLai, ngayPhanCong);
 //			            bangPhanCongCongDoan.suaPhanCongCongDoan(phanCong);
-//			            soLuongCoTheThem--;
-//			            if (soLuongCoTheThem == 0) {
-//			                break;
-//			            }
-//			        }
-//			    }
-//			}
-//
-//			if (soLuongCoTheThem > 0) {
-//				hienThongBaoThongBao("Số lượng còn lại có thể thêm là: " + soLuongCoTheThem);
-//			}
-//			// Hiển thị lại các danh sách sau khi đã thêm vào cơ sở dữ liệu
-//			hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//			hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//			hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//			tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+			            soLuongCoTheThem--;
+			            if (soLuongCoTheThem == 0) {
+			                break;
+			            }
+			        }
+			    }
+			}
+
+			if (soLuongCoTheThem > 0) {
+				hienThongBaoThongBao("Số lượng còn lại có thể thêm là: " + soLuongCoTheThem);
+			}
+			// Hiển thị lại các danh sách sau khi đã thêm vào cơ sở dữ liệu
+			hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+			hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+			hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+			tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
 	
-	private void openPhanCongDialogSua() {
-//		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		JTextField txtNhapSoLuongThem = new JTextField();
-//		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
-//		DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//		CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
-//		String maCongDoan = maCongDoanSelected;
-//		int selectedRowDSPhanCong = tblDSPhanCong.getSelectedRow();
-//		String soLuongPhanCongStr = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 3).toString();
-//		int soLuongPhanCong1 = Integer.parseInt(soLuongPhanCongStr);
-//		// Khai báo và khởi tạo giá trị cho soLuongConLai
-//		int soLuongConLai = daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) - bangPhanCongCongDoan.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan) + soLuongPhanCong1;
-//
-//		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
-//		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng cần sửa:");
-//
-//		JPanel panel = new JPanel(new GridLayout(4, 2));
-//		panel.add(lblSoLuongConLai);
-//		panel.add(lblSoLuongConLaiHienThi);
-//		panel.add(lblNhapSoLuongThem);
-//		panel.add(txtNhapSoLuongThem);
-//
-//		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thu công", JOptionPane.OK_CANCEL_OPTION);
-//
-//		if (result == JOptionPane.OK_OPTION) {
-//			String soLuongThem = txtNhapSoLuongThem.getText();
-//
-//			try {
-//				int soLuongThemInt = Integer.parseInt(soLuongThem);
-//
-//				// Kiểm tra nếu số lượng thêm vào lớn hơn 0 và nhỏ hơn hoặc bằng số lượng còn lại
-//				if (soLuongThemInt > 0 && soLuongThemInt <= soLuongConLai) {
-//					// Lấy dữ liệu từ tblDSPhanCong		
-//					String maCongNhan = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 1).toString();
-//					String ngaySua = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 4).toString();
-//					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
-//					String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//					int selecRowDSSP = tblDSSP.getSelectedRow();
-//					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
-//					int soLuongPhanCong = soLuongThemInt;
-//					LocalDate ngayPhanCong = LocalDate.parse(ngaySua, formatter);
-//					CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
-//					CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
-//					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
-//					bangPhanCongCongDoan.suaPhanCongCongDoan(phanCong);
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//					System.out.println("Đã sửa " + soLuongPhanCong + " công việc.");
-//					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				} else {
-//					hienThongBaoLoi("Số lượng sửa phải lớn hơn 0 và nhỏ hơn hoặc bằng số lượng còn lại.");
-//				}
-//
-//			} catch (NumberFormatException e) {
-//				hienThongBaoLoi("Nhập số lượng sửa không hợp lệ!");
-//			}
-//		} else {
-//			hienThongBaoThongBao("Bạn đã hủy phân công.");
-//		}
+	private void openPhanCongDialogSua() throws IOException, ClassNotFoundException {
+		selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		JTextField txtNhapSoLuongThem = new JTextField();
+		JLabel lblSoLuongConLai = new JLabel("Số lượng còn lại:");
+		// DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
+		// CongNhan_Dao congNhan_Dao = new CongNhan_Dao();
+		String maCongDoan = maCongDoanSelected;
+		int selectedRowDSPhanCong = tblDSPhanCong.getSelectedRow();
+		String soLuongPhanCongStr = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 3).toString();
+		int soLuongPhanCong1 = Integer.parseInt(soLuongPhanCongStr);
+		// Khai báo và khởi tạo giá trị cho soLuongConLai
+		int soLuongConLai = laySoLuongThanhPhanTheoMaCongDoan(maCongDoan) -  tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan) + soLuongPhanCong1;
+
+		JLabel lblSoLuongConLaiHienThi = new JLabel(String.valueOf(soLuongConLai));
+		JLabel lblNhapSoLuongThem = new JLabel("Nhập số lượng cần sửa:");
+
+		JPanel panel = new JPanel(new GridLayout(4, 2));
+		panel.add(lblSoLuongConLai);
+		panel.add(lblSoLuongConLaiHienThi);
+		panel.add(lblNhapSoLuongThem);
+		panel.add(txtNhapSoLuongThem);
+
+		int result = JOptionPane.showConfirmDialog(this, panel, "Phân công thu công", JOptionPane.OK_CANCEL_OPTION);
+
+		if (result == JOptionPane.OK_OPTION) {
+			String soLuongThem = txtNhapSoLuongThem.getText();
+
+			try {
+				int soLuongThemInt = Integer.parseInt(soLuongThem);
+
+				// Kiểm tra nếu số lượng thêm vào lớn hơn 0 và nhỏ hơn hoặc bằng số lượng còn lại
+				if (soLuongThemInt > 0 && soLuongThemInt <= soLuongConLai) {
+					// Lấy dữ liệu từ tblDSPhanCong		
+					String maCongNhan = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 1).toString();
+					String ngaySua = tblDSPhanCong.getValueAt(selectedRowDSPhanCong, 4).toString();
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+					int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+					String maCongDoan1 = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString();
+					String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+					int selecRowDSSP = tblDSSP.getSelectedRow();
+					String maSanPham = tblDSSP.getValueAt(selecRowDSSP, 1).toString();
+					int soLuongPhanCong = soLuongThemInt;
+					LocalDate ngayPhanCong = LocalDate.parse(ngaySua, formatter);
+
+
+					// CongDoan congDoan = daoCongDoan.timCongDoanTheoMa(maCongDoan);
+					// CongNhan congNhan = congNhan_Dao.timCongNhanBangMa(maCongNhan);
+					CongDoan congDoan = new CongDoan(); 
+					CongNhan congNhan = new CongNhan();  
+					
+					out.writeUTF("GD_CONGDOAN");
+					out.writeInt(4);
+					out.writeUTF(maCongDoan);
+					out.flush();
+					congDoan = (CongDoan)in.readObject();
+
+					out.writeUTF("CONGNHAN");
+					out.writeInt(1);
+					out.writeUTF(maCongNhan);
+					out.flush();
+					congNhan = (CongNhan)in.readObject();
+
+
+
+					BangPhanCongCongDoan phanCong = new BangPhanCongCongDoan(soLuongPhanCong, congDoan, congNhan, ngayPhanCong);
+					// bangPhanCongCongDoan.suaPhanCongCongDoan(phanCong);
+					Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+					String json = gson.toJson(phanCong);
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(8);
+					out.writeUTF(json);
+					out.flush();
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan1);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+					System.out.println("Đã sửa " + soLuongPhanCong + " công việc.");
+					tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				} else {
+					hienThongBaoLoi("Số lượng sửa phải lớn hơn 0 và nhỏ hơn hoặc bằng số lượng còn lại.");
+				}
+
+			} catch (NumberFormatException e) {
+				hienThongBaoLoi("Nhập số lượng sửa không hợp lệ!");
+			}
+		} else {
+			hienThongBaoThongBao("Bạn đã hủy phân công.");
+		}
 	}
 
-	private void openPhanCongDialogXoa() {
-//		DefaultTableModel model = (DefaultTableModel) tblDSPhanCong.getModel();
-//		int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
-//		String maCongDoan = (selectedRowDSCongDoan >= 0) ? tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString() : "";
-//		int selecRowDSSP = tblDSSP.getSelectedRow();
-//		String maSanPham = (selecRowDSSP >= 0) ? tblDSSP.getValueAt(selecRowDSSP, 1).toString() : "";
-//		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
-//
-//		int confirmResult = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
-//
-//		if (confirmResult == JOptionPane.YES_OPTION) {
-//			List<String> dsMaCongNhanDaXoa = new ArrayList<>();
-//
-//			for (int row = 0; row < model.getRowCount(); row++) {
-//				Object checkboxValue = model.getValueAt(row, 5);
-//
-//				if (checkboxValue instanceof Boolean && (Boolean) checkboxValue) {
-//					String maCongNhan = model.getValueAt(row, 1).toString();
-//					// Xóa phân công
-//					DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
-//					bangPhanCongCongDoan.xoaPhanCongCongDoanVaKhoiDs(maCongDoan, maCongNhan);
-//					// Thêm mã công nhân vào danh sách đã xóa
-//					dsMaCongNhanDaXoa.add(maCongNhan);
-//				}
-//			}
-//
-//			// Kiểm tra xem có mã công nhân mới xóa hay không
-//			if (!dsMaCongNhanDaXoa.isEmpty()) {
-//				// Cập nhật model của bảng DSCN sau khi xóa tất cả
-//				if (selectedRowDSCongDoan >= 0) {
-//					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
-//					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan);
-//					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
-//				}
-//				tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
-//				System.out.println("Đã xóa công việc.");
-//			} else {
-//				hienThongBaoLoi("Vui lòng chọn các hàng có checkbox được chọn để thực hiện xóa.");
-//			}
-//		}
+	private void openPhanCongDialogXoa() throws IOException {
+		DefaultTableModel model = (DefaultTableModel) tblDSPhanCong.getModel();
+		int selectedRowDSCongDoan = tblDSCongDoan.getSelectedRow();
+		String maCongDoan = (selectedRowDSCongDoan >= 0) ? tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 1).toString() : "";
+		int selecRowDSSP = tblDSSP.getSelectedRow();
+		String maSanPham = (selecRowDSSP >= 0) ? tblDSSP.getValueAt(selecRowDSSP, 1).toString() : "";
+		String tenCongDoan = tblDSCongDoan.getValueAt(selectedRowDSCongDoan, 2).toString();
+
+		int confirmResult = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+
+		if (confirmResult == JOptionPane.YES_OPTION) {
+			List<String> dsMaCongNhanDaXoa = new ArrayList<>();
+
+			for (int row = 0; row < model.getRowCount(); row++) {
+				Object checkboxValue = model.getValueAt(row, 5);
+
+				if (checkboxValue instanceof Boolean && (Boolean) checkboxValue) {
+					String maCongNhan = model.getValueAt(row, 1).toString();
+					// Xóa phân công
+					// DAO_BangPhanCongCongDoan bangPhanCongCongDoan = new DAO_BangPhanCongCongDoan();
+					// bangPhanCongCongDoan.xoaPhanCongCongDoanVaKhoiDs(maCongDoan, maCongNhan);
+
+					out.writeUTF("GD_PHANCONG");
+					out.writeInt(6);
+					out.writeUTF(maCongDoan);
+					out.writeUTF(maCongNhan);
+					out.flush();
+
+					// Thêm mã công nhân vào danh sách đã xóa
+					dsMaCongNhanDaXoa.add(maCongNhan);
+				}
+			}
+
+			// Kiểm tra xem có mã công nhân mới xóa hay không
+			if (!dsMaCongNhanDaXoa.isEmpty()) {
+				// Cập nhật model của bảng DSCN sau khi xóa tất cả
+				if (selectedRowDSCongDoan >= 0) {
+					hienThiDanhSachCongDoanTheoSPChuaHoanThanh(maSanPham);
+					hienThiDanhSachPhanCongTheoMaCongDoan(maCongDoan);
+					hienThiDanhSachCongNhanTheoMaChuyenMon(tenCongDoan);
+				}
+				tblDSCongDoan.setRowSelectionInterval(selectedRowDSCongDoan, selectedRowDSCongDoan);
+				System.out.println("Đã xóa công việc.");
+			} else {
+				hienThongBaoLoi("Vui lòng chọn các hàng có checkbox được chọn để thực hiện xóa.");
+			}
+		}
 	}
 	private boolean areAnyCheckboxesSelected() {
 	    DefaultTableModel model = (DefaultTableModel) tblDSPhanCong.getModel();
@@ -1268,90 +1758,125 @@ public class PanelPhanCongCongDoan extends javax.swing.JPanel {
 	private Set<String> dsMaCongNhanDaXuatHien = new HashSet<>();
 	int soLuongCongNhanDaPhanCong;
 	private void hienThiDanhSachPhanCongTheoMaCongDoan(String maCongDoan) {
-//		DAO_BangPhanCongCongDoan dao = new DAO_BangPhanCongCongDoan();
-//		ArrayList<BangPhanCongCongDoan> dsPhanCong = dao.layDanhSachPhanCongCongDoanTheoMaCongDoan(maCongDoan);
-//
-//		DefaultTableModel model = (DefaultTableModel) tblDSPhanCong.getModel();
-//		model.setRowCount(0); // Xóa hết các dòng hiện tại trong table
-//		int stt = 1; // Biến đếm
-//
-//		for (BangPhanCongCongDoan bPC : dsPhanCong) {
-//			dsMaCongNhanDaXuatHien.add(bPC.getCongNhanDamNhan().getMaNhanSu());
-//
-//			Object[] row = {
-//					stt,
-//					bPC.getCongNhanDamNhan().getMaNhanSu(),
-//					bPC.getCongNhanDamNhan().getHo() + " " + bPC.getCongNhanDamNhan().getTen(),
-//					bPC.getSoLuongPhanCong(),
-//					bPC.getNgayPhanCong()
-//			};
-//			model.addRow(row);
-//			stt++;
-//		}
-//		soLuongCongNhanDaPhanCong = stt;
+		// DAO_BangPhanCongCongDoan dao = new DAO_BangPhanCongCongDoan();
+		// ArrayList<BangPhanCongCongDoan> dsPhanCong = dao.layDanhSachPhanCongCongDoanTheoMaCongDoan(maCongDoan);
+		try {
+			ArrayList<BangPhanCongCongDoan> dsPhanCong = new ArrayList<>(); 
+			out.writeUTF("GD_PHANCONG");
+			out.writeInt(7);
+			out.writeUTF(maCongDoan);
+			out.flush();
+			dsPhanCong = (ArrayList<BangPhanCongCongDoan>) in.readObject();
+			DefaultTableModel model = (DefaultTableModel) tblDSPhanCong.getModel();
+			model.setRowCount(0); // Xóa hết các dòng hiện tại trong table
+			int stt = 1; // Biến đếm
+
+			for (BangPhanCongCongDoan bPC : dsPhanCong) {
+				dsMaCongNhanDaXuatHien.add(bPC.getCongNhanDamNhan().getMaNhanSu());
+
+				Object[] row = {
+						stt,
+						bPC.getCongNhanDamNhan().getMaNhanSu(),
+						bPC.getCongNhanDamNhan().getHo() + " " + bPC.getCongNhanDamNhan().getTen(),
+						bPC.getSoLuongPhanCong(),
+						bPC.getNgayPhanCong()
+				};
+				model.addRow(row);
+				stt++;
+			}
+			soLuongCongNhanDaPhanCong = stt;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
+	
+	
 	// Trong phương thức hienThiDanhSachCongNhanTheoMaChuyenMon
 	int soLuongCongNhanTrongDSCN;
 	private void hienThiDanhSachCongNhanTheoMaChuyenMon(String tenCongDoan) {
-//		CongNhan_Dao dao = new CongNhan_Dao();
-//		String maChuyenMon = null;
-//		for (CongNhan congNhan : dao.getDs()) {
-//			if (congNhan.getChuyenMon().getTenChuyenMon().equalsIgnoreCase(tenCongDoan))
-//				maChuyenMon = congNhan.getChuyenMon().getMaChuyenMon();
-//		}
-//
-//		if (maChuyenMon != null) {
-//			ArrayList<CongNhan> dsPhanCong = dao.layDanhSachCongNhanTheoMaChuyenMon(maChuyenMon);
-//
-//			DefaultTableModel model = (DefaultTableModel) tblDSCN.getModel();
-//			model.setRowCount(0);
-//
-//			int stt = 1;
-//			for (CongNhan congNhan : dsPhanCong) {
-//				// Kiểm tra xem maCongNhan đã xuất hiện trong dsMaCongNhanDaXuatHien chưa
-//				if (!dsMaCongNhanDaXuatHien.contains(congNhan.getMaNhanSu())) {
-//					Object[] row = {
-//							stt,
-//							congNhan.getMaNhanSu(),
-//							congNhan.getHo() + " " + congNhan.getTen(),
-//					};
-//					model.addRow(row);
-//					stt++;
-//					soLuongCongNhanTrongDSCN = stt;
-//				}
-//			}
-//
-//			// Làm mới danh sách công nhân
-//			dsMaCongNhanDaXuatHien.clear();
-//		}
-//	}
-//	private void addSearchListenerSanPham() {
-//		// Lắng nghe sự kiện thay đổi nội dung của ô tìm kiếm
-//		txtTimKiemSanPham.getDocument().addDocumentListener((DocumentListener) new DocumentListener() {
-//			public void insertUpdate(DocumentEvent e) {
-//				search();
-//			}
+		// CongNhan_Dao dao = new CongNhan_Dao();
+		System.out.println("hello");
+		try {
+			out.writeUTF("CONGNHAN");
+			out.writeInt(2);
+			CongNhan[] dsCongNhan =  ((List<CongNhan>) in.readObject()).toArray(new CongNhan[0]);
+			out.flush();
+			ArrayList<CongNhan> dsPhanCong = new ArrayList<>();
+			String maChuyenMon = null;
+			for (CongNhan congNhan : dsCongNhan) {
+				if (congNhan.getChuyenMon().getTenChuyenMon().equalsIgnoreCase(tenCongDoan)) {
+					maChuyenMon = congNhan.getChuyenMon().getMaChuyenMon();
+					dsPhanCong.add(congNhan);
+				}
+			}
+
+			if (maChuyenMon != null) {
+				// ArrayList<CongNhan> dsPhanCong = dao.layDanhSachCongNhanTheoMaChuyenMon(maChuyenMon);
+				
+				DefaultTableModel model = (DefaultTableModel) tblDSCN.getModel();
+				model.setRowCount(0);
+
+				int stt = 1;
+				for (CongNhan congNhan : dsPhanCong) {
+					// Kiểm tra xem maCongNhan đã xuất hiện trong dsMaCongNhanDaXuatHien chưa
+					if (!dsMaCongNhanDaXuatHien.contains(congNhan.getMaNhanSu())) {
+						Object[] row = {
+								stt,
+								congNhan.getMaNhanSu(),
+								congNhan.getHo() + " " + congNhan.getTen(),
+						};
+						model.addRow(row);
+						stt++;
+						soLuongCongNhanTrongDSCN = stt;
+					}
+				}
+
+				// Làm mới danh sách công nhân
+				dsMaCongNhanDaXuatHien.clear();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+
+
+	private void addSearchListenerSanPham() {
+		//		// Lắng nghe sự kiện thay đổi nội dung của ô tìm kiếm
+		//		txtTimKiemSanPham.getDocument().addDocumentListener((DocumentListener) new DocumentListener() {
+			//			public void insertUpdate(DocumentEvent e) {
+				//				search();
+			//			}
 //
 //			public void removeUpdate(DocumentEvent e) {
-//				search();
-//			}
+				//				search();
+			//			}
 //
 //			public void changedUpdate(DocumentEvent e) {
-//				search();
-//			}
+				//				search();
+			//			}
 //
 //			private void search() {
-//				String searchText = txtTimKiemSanPham.getText().trim();
-//				TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>((DefaultTableModel) tblDSSP.getModel());
-//				tblDSSP.setRowSorter(rowSorter);
+				//				String searchText = txtTimKiemSanPham.getText().trim();
+				//				TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>((DefaultTableModel) tblDSSP.getModel());
+				//				tblDSSP.setRowSorter(rowSorter);
 //
 //				try {
-//					// Tạo điều kiện tìm kiếm cho tất cả các cột
-//					rowSorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + searchText));
-//				} catch (PatternSyntaxException ex) {
-//					// Nếu có vấn đề với biểu thức chính quy
-//					JOptionPane.showMessageDialog(null, "Lỗi tìm kiếm!");
-//				}
+					//					// Tạo điều kiện tìm kiếm cho tất cả các cột
+					//					rowSorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + searchText));
+				//				} catch (PatternSyntaxException ex) {
+					//					// Nếu có vấn đề với biểu thức chính quy
+					//					JOptionPane.showMessageDialog(null, "Lỗi tìm kiếm!");
+				//				}
 //			}
 //		});
 	}

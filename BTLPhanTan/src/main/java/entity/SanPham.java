@@ -59,9 +59,6 @@ public class SanPham implements Serializable{
     
     
 
-	public SanPham() {
-		super();
-	}
 
 
 	public int getTrangThai() {

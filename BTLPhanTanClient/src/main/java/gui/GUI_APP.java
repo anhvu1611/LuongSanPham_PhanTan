@@ -344,7 +344,7 @@ public class GUI_APP extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					panelBody.removeAll();
-					panelBody.add(new PanelPhanCongCongDoan());
+					panelBody.add(new PanelPhanCongCongDoan(outData, in, socket));
 					panelBody.repaint();
 					panelBody.revalidate();
 				}
@@ -362,7 +362,7 @@ public class GUI_APP extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					panelBody.removeAll();
-					panelBody.add(new frm_SanPham_ChiaCongDoan());
+					panelBody.add(new frm_SanPham_ChiaCongDoan(outData, in, socket));
 					panelBody.repaint();
 					panelBody.revalidate();
 				}
@@ -478,7 +478,7 @@ public class GUI_APP extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					panelBody.removeAll();
-					panelBody.add(new PanelPhanCongCongDoan());
+					panelBody.add(new PanelPhanCongCongDoan(outData, in, socket));
 					panelBody.repaint();
 					panelBody.revalidate();
 				}
@@ -496,7 +496,7 @@ public class GUI_APP extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					panelBody.removeAll();
-					panelBody.add(new frm_SanPham_ChiaCongDoan());
+					panelBody.add(new frm_SanPham_ChiaCongDoan(outData, in, socket));
 					panelBody.repaint();
 					panelBody.revalidate();
 				}

@@ -5,16 +5,25 @@
 package form;
 import Enum.LoaiCongDoan;
 import entity.CongDoan;
+import entity.LocalDateAdapter;
 import entity.SanPham;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.Socket;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import javax.swing.JButton;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.GroupLayout;
@@ -33,10 +42,17 @@ public class frm_SanPham_ChiaCongDoan extends javax.swing.JPanel {
 	private static final long serialVersionUID = -6421167478887147299L;
 	private DefaultTableModel modalSanPham;
 	private DefaultTableModel modalCongDoan;
+
+    private Socket socket;
+	DataOutputStream out;
+	ObjectInputStream in;
 	/**
      * Creates new form frm_NhanVien_CapNhat_
      */
-    public frm_SanPham_ChiaCongDoan() {
+    public frm_SanPham_ChiaCongDoan(DataOutputStream out, ObjectInputStream in, Socket socket) {
+        this.out = out;
+		this.in = in;
+		this.socket = socket;
         initComponents();
         layDanhSachSanPham();
     }
@@ -631,18 +647,32 @@ public class frm_SanPham_ChiaCongDoan extends javax.swing.JPanel {
 	}
 
 	protected void layCongDoanTheoSanPhamDuocChon(String maSanPham) {
-//		ArrayList<CongDoan> dsCongDoan = CongDoan_Dao.layDanhSachCongDoanKhiCoMaSanPham(maSanPham);
-//		modalCongDoan.setRowCount(0);
-//		int i =0;
-//		for (CongDoan congDoan : dsCongDoan) {
-//			modalCongDoan.addRow(new String[] {++i + "", congDoan.getMaCongDoan(), congDoan.getLoaiCongDoan().toString(), congDoan.getSanPham().getMaSanPham(), congDoan.getLuongTren1Sp()+"", congDoan.getSoCongNhan()+"",congDoan.getSoLuongThanhPhan()+"", congDoan.getNgayChiaCongDoan().toString()});
-//		}
-//		kiemTraSoLuong();
-//		layLoaiCongDoanConLai();
+        try {
+			out.writeUTF("GD_CONGDOAN");
+			out.writeInt(3);
+	        out.writeUTF(maSanPham);
+			out.flush();
+	        ArrayList<CongDoan> dsCongDoan = (ArrayList<CongDoan>) in.readObject();
+			modalCongDoan.setRowCount(0);
+			int i =0;
+			for (CongDoan congDoan : dsCongDoan) {
+				System.out.println("gia:" + congDoan.getLuongTren1Sp());
+				modalCongDoan.addRow(new String[] {++i + "", congDoan.getMaCongDoan(), congDoan.getLoaiCongDoan().toString(), congDoan.getSanPham().getMaSanPham(), congDoan.getLuongTren1Sp()+"", congDoan.getSoCongNhan()+"",congDoan.getSoLuongThanhPhan()+"", congDoan.getNgayChiaCongDoan().toString()});
+			}
+			kiemTraSoLuong();
+			layLoaiCongDoanConLai();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void tglThemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tglThemActionPerformed
         // TODO add your handling code here:
+		System.out.println("hello world");
         if (tglThem.isSelected()) {
         	if(tblDSSP.getSelectedRow()!=-1) {
         		moFormNhapDuLieu();
@@ -725,39 +755,59 @@ public class frm_SanPham_ChiaCongDoan extends javax.swing.JPanel {
 
     private void btnXacNhanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnXacNhanActionPerformed
         // TODO add your handling code here:
-//        CongDoan congDoan = taoCongDoan();
-//        if(kiemTraDuLieu()){
-//            if(tglThem.isSelected()){
-//                if(CongDoan_Dao.themCongDoan(congDoan)){
-//                    JOptionPane.showMessageDialog(null, "Tạo Công Đoạn Thành Công");
-//                    
-//                    dienMaSanPham();
-//                    layCongDoanTheoSanPhamDuocChon(congDoan.getSanPham().getMaSanPham());
-//
-//                    dongFormNhapDuLieu();
-//                    kiemTraSoLuong();
-//                    xoaTrangForm();
-//                    txtMa.setText("");
-//                    txtSanPham.setText((String) tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 2));
-//                }else{             
-//                    JOptionPane.showMessageDialog(null, "Tạo Công Đoạn Thất Bại");
-//                }
-//            }else{
-//            	boolean isSuccess = false;
-////            			CongDoan_Dao.suaCongDoan(congDoan);
-//                if(isSuccess){
-//                    JOptionPane.showMessageDialog(null, "Sửa Công Đoạn Thành Công");
-//                    layCongDoanTheoSanPhamDuocChon(congDoan.getSanPham().getMaSanPham());                 
-//                    dongFormNhapDuLieu();
-//                    kiemTraSoLuong();
-//                    txtMa.setText("");
-//                    txtNhapTenSP.setText((String) tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 2));
-//                    tblCongDoan.clearSelection();
-//                }else{             
-//                    JOptionPane.showMessageDialog(null, "Sửa Công Đoạn Thất Bại");
-//                }
-//            }
-//        }    
+       CongDoan congDoan = taoCongDoan();
+       if(kiemTraDuLieu()){
+    	   System.out.println(tglThem.isSelected());
+           if(!tglThem.isSelected()){
+                //using socket instead
+        	    boolean themcd = false; 
+        	    Gson gson = new GsonBuilder()
+                        .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                        .create();
+                try {
+                	out.writeUTF("GD_CONGDOAN"); 
+					out.writeInt(2);
+					out.writeUTF(gson.toJson(congDoan));
+					out.flush();
+					themcd = (boolean) in.readObject(); 
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+               
+                    
+                // boolean themcd =  CongDoan_Dao.themCongDoan(congDoan); 
+
+                System.out.println("result: "+ themcd);
+               if(themcd){
+                   JOptionPane.showMessageDialog(null, "Tạo Công Đoạn Thành Công");
+                   layCongDoanTheoSanPhamDuocChon(congDoan.getSanPham().getMaSanPham());
+                   dienMaSanPham();
+                   dongFormNhapDuLieu();
+                   kiemTraSoLuong();
+                   xoaTrangForm();
+                   txtMa.setText("");
+                   txtSanPham.setText((String) tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 2));
+               }else{       
+            	   JOptionPane.showMessageDialog(null, "Sửa Công Đoạn Thành Công");
+                   layCongDoanTheoSanPhamDuocChon(congDoan.getSanPham().getMaSanPham());                 
+                   dongFormNhapDuLieu();
+                   kiemTraSoLuong();
+                   txtMa.setText("");
+                   txtNhapTenSP.setText((String) tblDSSP.getValueAt(tblDSSP.getSelectedRow(), 2));
+                   tblCongDoan.clearSelection();
+//                   JOptionPane.showMessageDialog(null, "Tạo Công Đoạn Thất Bại");
+               }
+               
+           }
+           
+           else{
+           	JOptionPane.showMessageDialog(null, "Thất Bại");
+           }
+       }    
     }//GEN-LAST:event_btnXacNhanActionPerformed
 
 
@@ -853,17 +903,38 @@ public class frm_SanPham_ChiaCongDoan extends javax.swing.JPanel {
 
     private void datDuLieuCongDoanDuocChonVaoForm() {
         int dongDuocChonTrenBangCongDoan = tblCongDoan.getSelectedRow();
-//        System.out.println(dongDuochon);
+        System.out.println("dongDuocChonTrenBangCongDoan: "+dongDuocChonTrenBangCongDoan);
+        dongDuocChonTrenBangCongDoan = Math.max(dongDuocChonTrenBangCongDoan, 0);
+
         String maCongDoan = (String)tblCongDoan.getValueAt(dongDuocChonTrenBangCongDoan, 1);
-        CongDoan congDoan =null;
+        System.out.println("Ma cong doan: "+maCongDoan);
 //        		CongDoan_Dao.timCongDoanKhiCoMa(maCongDoan);
-        txtMa.setText(congDoan.getMaCongDoan());
-        txtGia.setText(congDoan.getLuongTren1Sp()+"");
-        cmbLoaiCongDoan.removeAllItems();
-        cmbLoaiCongDoan.addItem(congDoan.getLoaiCongDoan());
-        txtSoCongNhan.setText(congDoan.getSoCongNhan()+"");	
-        txtSoSanPham.setText(congDoan.getSoLuongThanhPhan()+"");
-        txtSanPham.setText(congDoan.getSanPham().getTenSP());
+        // 
+        try {
+        	CongDoan congDoan = new CongDoan();
+			out.writeUTF("GD_CONGDOAN");
+			out.writeInt(4);
+	        out.writeUTF(maCongDoan);
+	        out.flush();
+	        congDoan = (CongDoan)in.readObject();
+			System.out.println("congDoan getLuongTren1Sp(): ");
+			System.out.println(congDoan.getLuongTren1Sp());
+	        
+	        txtMa.setText(congDoan.getMaCongDoan());
+	        txtGia.setText(congDoan.getLuongTren1Sp()+"");
+	        cmbLoaiCongDoan.removeAllItems();
+	        cmbLoaiCongDoan.addItem(congDoan.getLoaiCongDoan());
+	        txtSoCongNhan.setText(congDoan.getSoCongNhan()+"");	
+	        txtSoSanPham.setText(congDoan.getSoLuongThanhPhan()+"");
+	        txtSanPham.setText(congDoan.getSanPham().getTenSP());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
     }
 
 	private CongDoan taoCongDoan() {
@@ -914,12 +985,34 @@ public class frm_SanPham_ChiaCongDoan extends javax.swing.JPanel {
     }
     
     private void layDanhSachSanPham() {
+        // using socket to request to server
+    	try {
+			out.writeUTF("GD_CONGDOAN");
+			out.writeInt(1);
+			out.flush();
+			ArrayList<SanPham> ds = (ArrayList<SanPham>) in.readObject();
+	    	modalSanPham.setRowCount(0);
+	    	int i=0;
+	    	for (SanPham sanPham : ds) {
+				modalSanPham.addRow(new String[] {++i + "", sanPham.getMaSanPham(), sanPham.getTenSP()});
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	
 //    	ArrayList<SanPham> ds = qlSanPham.layDanhSachSanPham();
 //    	modalSanPham.setRowCount(0);
 //    	int i=0;
 //    	for (SanPham sanPham : ds) {
 //			modalSanPham.addRow(new String[] {++i + "", sanPham.getMaSanPham(), sanPham.getTenSP()});
 //		}
+
+        
     }
     
     private void kiemTraSoLuong() {

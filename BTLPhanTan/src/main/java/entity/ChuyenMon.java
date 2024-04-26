@@ -73,9 +73,5 @@ public class ChuyenMon implements Serializable {
     public String toString() {
     	return tenChuyenMon;
     }
-
-	public ChuyenMon() {
-		super();
-	}
     
 }

@@ -25,17 +25,52 @@ public class BangPhanCongCongDoanImpl implements BangPhanCongCongDoanDao {
     public BangPhanCongCongDoanImpl(EntityManager em){
         this.em = em;
     }
+    
+    @Override
+	public int laySoLuongDaChamCongTheoMaCongDoan(String maCongDoan) {
+		// TODO Auto-generated method stub
+    	int soLuong = 0;
+    	String sql = "select sum(soLuongHoanThanh)  from BangChamCongCongNhan where maCongDoan = ?";
+    	try {
+    		soLuong = (int) em.createNativeQuery(sql)
+                .setParameter(1, maCongDoan)
+                .getSingleResult();
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    	}
+    	
+		return 0;
+	}
+    
     @Override
     public void themPhanCongCongDoan(BangPhanCongCongDoan phanCong) {
-        EntityTransaction tx = em.getTransaction();
-        try {
-            tx.begin();
-            em.persist(phanCong);
-            tx.commit();
-        } catch (Exception e) {
-            tx.rollback();
-            e.printStackTrace();
-        }
+//        EntityTransaction tx = em.getTransaction();
+//        try {
+//            tx.begin();
+//            em.persist(phanCong);
+//            tx.commit();
+//        } catch (Exception e) {
+//            tx.rollback();
+//            e.printStackTrace();
+//        }
+    	String sql = "INSERT INTO BangPhanCongCongDoan" +
+	                " VALUES (?, ?, ?, ?, ?)";
+    	EntityTransaction tx = em.getTransaction();
+    	try {
+    		tx.begin();
+    		em.createNativeQuery(sql)
+    				.setParameter(1, java.sql.Date.valueOf(phanCong.getNgayPhanCong()))
+    				.setParameter(2, phanCong.getSoLuongConLai())
+    				.setParameter(3, phanCong.getSoLuongPhanCong())
+    				.setParameter(4, phanCong.getCongDoan().getMaCongDoan())
+    				.setParameter(5, phanCong.getCongNhanDamNhan().getMaNhanSu())
+    				.executeUpdate();
+    		tx.commit();
+    	} catch (Exception e) {
+    		tx.rollback();
+    		e.printStackTrace();
+    	}
+    	
     }
 
     @Override
@@ -71,7 +106,7 @@ public class BangPhanCongCongDoanImpl implements BangPhanCongCongDoanDao {
 
     @Override
     public ArrayList<BangPhanCongCongDoan> layDanhSachPhanCongCongDoanTheoMaCongDoan(String maCongDoan) {
-        String sql = "SELECT [maCongDoan], [maCongNhan], [soLuong], [ngayPhanCong] FROM [QuanLyLuongSanPham].[dbo].[BangPhanCongCongDoan] WHERE [maCongDoan] = ?";
+        String sql = "SELECT [maCongDoan], [maNhanSu], [soLuongConLai], [soLuongPhanCong], [ngayPhanCong] FROM BangPhanCongCongDoan WHERE maCongDoan = ?";
         try {
             return (ArrayList<BangPhanCongCongDoan>) em.createNativeQuery(sql, BangPhanCongCongDoan.class)
                     .setParameter(1, maCongDoan)
@@ -186,4 +221,5 @@ public class BangPhanCongCongDoanImpl implements BangPhanCongCongDoanDao {
         }
         return null;
     }
+	
 }

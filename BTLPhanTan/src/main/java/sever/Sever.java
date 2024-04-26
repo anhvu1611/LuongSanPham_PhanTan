@@ -2,8 +2,10 @@
 package sever;
 
 import dao.BangLuongNhanVienDao;
+import dao.BangPhanCongCongDoanDao;
 import dao.ChucVuDao;
 import dao.ChuyenMonDao;
+import dao.CongDoanDao;
 import dao.CongNhanDao;
 import dao.DiaChiDao;
 import dao.NhanVienDao;
@@ -12,8 +14,10 @@ import dao.SanPhamDao;
 import dao.TaiKhoanDao;
 import dao.ThongKeLuongNhanVienDao;
 import dao.impl.BangLuongNhanVienImpl;
+import dao.impl.BangPhanCongCongDoanImpl;
 import dao.impl.ChucVuImpl;
 import dao.impl.ChuyenMonImpl;
+import dao.impl.CongDoanImpl;
 import dao.impl.CongNhanImpl;
 import dao.impl.DiaChiImpl;
 import dao.impl.NhanVienImpl;
@@ -21,8 +25,10 @@ import dao.impl.PhongBanImpl;
 import dao.impl.SanPhamimpl;
 import dao.impl.TaiKhoanImpl;
 import dao.impl.ThongKeLuongNhanVienImpl;
+import entity.BangPhanCongCongDoan;
 import entity.ChucVu;
 import entity.ChuyenMon;
+import entity.CongDoan;
 import entity.CongNhan;
 import entity.DiaChi;
 import entity.LocalDateAdapter;
@@ -38,6 +44,7 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import com.google.gson.Gson;
@@ -74,6 +81,8 @@ class ClientHandler implements Runnable {
     private ChuyenMonDao chuyenMonDao;
     private BangLuongNhanVienDao bangLuongNhanVienDao;
     private ThongKeLuongNhanVienDao thongKeLuongNhanVienDao;
+    private CongDoanDao congDoanDao;
+    private BangPhanCongCongDoanDao bangPhanCongCongDoanDao;
     private EntityManager em;
     private Gson gson;
 
@@ -90,9 +99,11 @@ class ClientHandler implements Runnable {
         phongBanDao = new PhongBanImpl(em);
         chuyenMonDao = new ChuyenMonImpl(em);
         bangLuongNhanVienDao = new BangLuongNhanVienImpl(em);
+        bangPhanCongCongDoanDao = new BangPhanCongCongDoanImpl(em);
         gson = new GsonBuilder()
         	    .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
         	    .create();
+        congDoanDao = new CongDoanImpl(em);
 
     }
 
@@ -254,8 +265,7 @@ class ClientHandler implements Runnable {
 	                				isSuccess = nhanVienDao.sua(nv);
 	                				out.writeObject(isSuccess);
 	                				out.flush();
-	                				break;
-	                			
+	                				break; 
                 		}
 	                	break;
                     case "CONGNHAN":
@@ -354,7 +364,155 @@ class ClientHandler implements Runnable {
 							}
                     	}
                     	break;
-                	}
+                	
+                    case "GD_CONGDOAN": 
+                    	key = in.readInt();
+                    	switch (key) {
+                    	// lấy danh sách sản phẩm
+	                    	case 1: {
+	                    		ArrayList<SanPham> ds = (ArrayList<SanPham>) sanPhamDao.layDanhSach();
+	                    		out.writeObject(ds);
+	                    		out.flush();
+	                    		break;
+	                    	}
+
+							// Thêm công đoạn
+							case 2: {
+								System.out.println("Thêm công đoạn: ");
+								String json = in.readUTF();
+                        		CongDoan congDoan = gson.fromJson(json, CongDoan.class);
+                        		// kiểm tra công đoạn đã tồn tại chưa 
+                        		CongDoan cd = congDoanDao.timKiem(congDoan.getMaCongDoan());
+                        		boolean result = false; 
+								if (cd != null) {
+									congDoanDao.sua(congDoan);
+								}else 
+									result = congDoanDao.them(congDoan);
+								System.err.println("server: them cong doan" + result);
+								out.writeObject(result); 
+								out.flush();
+							}
+
+							// lấy danh sách công đoạn
+							case 3: { 
+								System.out.println("lấy danh sách công đoạn theo mã sp: ");
+								String maSanPham = in.readUTF();
+								System.out.println("Mã sp: " + maSanPham);
+								if(maSanPham.equals("GD_CONGDOAN")) {
+									in.readInt(); 
+									maSanPham = in.readUTF();
+								}
+								System.out.println("Mã sp: " + maSanPham);
+								ArrayList<CongDoan> ds = (ArrayList<CongDoan>) congDoanDao.layDanhSachTheoMaSanPham(maSanPham);
+								System.out.println("dssp: " + ds.size());
+								if(ds.size() > 0)
+									System.out.println("dssp[0]:" + ds.get(0));
+								out.writeObject(ds);
+								out.flush();
+								break;
+							}
+							
+							// timCongDoanKhiCoMa(maCongDoan);
+							
+							case 4: { 
+								System.out.println("tìm cd khi có mã congdoan:");
+								String maCongDoan = in.readUTF();
+								System.out.println("Mã cd: " + maCongDoan);
+                                CongDoan congDoan = congDoanDao.timKiem(maCongDoan);
+                                System.out.println("cd tim thay, getLuongTren1Sp: " + congDoan.getLuongTren1Sp());
+                                out.writeObject(congDoan);
+                                out.flush();
+                                break;
+                            }
+							
+							
+							
+                    	}
+                    	break; 	
+                    	
+                    case "GD_PHANCONG": 
+                    	key = in.readInt();
+                    	switch (key) {
+                    	// tinhTongSoLuongPhanCongTheoMaCongDoan
+	                    	case 1: {
+	                    		String maCongDoan = in.readUTF();
+	                    		System.out.println("tính tổng số lượng phân công theo mã công đoạn:" + maCongDoan);
+	                    		int result = BangPhanCongCongDoanDao.tinhTongSoLuongPhanCongTheoMaCongDoan(maCongDoan);
+	                    		out.writeObject(result);
+	                    		out.flush();
+	                    		break;
+	                    	}
+	                    	
+	                    //daoCongDoan.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan)
+	                    	case 2: {
+	                    		String maCongDoan = in.readUTF();
+	                    		System.out.println("lấy số lượng thành phần theo mã công đoạn:" + maCongDoan);
+                        		int result = congDoanDao.laySoLuongThanhPhanTheoMaCongDoan(maCongDoan);
+                        		out.writeObject(result);
+                        		out.flush();
+                        		break;
+                        	
+	                    	}
+	                    	
+	                    	case 3: {
+	                    		String maCongDoan = in.readUTF();
+	                    		System.out.println("lấy số lượng phan cong theo mã công đoạn:" + maCongDoan);
+                        		int result = bangPhanCongCongDoanDao.laySoLuongPhanCong(maCongDoan);
+                        		out.writeObject(result);
+                        		out.flush();
+                        		break;
+                        	
+	                    	}
+	                    	
+//	                    	bangPhanCongCongDoan.themPhanCongCongDoan(phanCong);
+	                    	case 4: { 
+	                    		System.out.println("thêm phân công công đoạn:");
+                        		String json = in.readUTF();
+                        		BangPhanCongCongDoan phanCong = gson.fromJson(json, BangPhanCongCongDoan.class);
+                        		System.out.println("phan cong: " + phanCong);
+                        		bangPhanCongCongDoanDao.themPhanCongCongDoan(phanCong);
+                        		break;
+	                    	}
+	                    	
+	                    	//bangChamCongCongNhan_Dao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoanCatGo) -
+	                    	case 5: { 
+	                    		String maCongDoan = in.readUTF();
+	                    		System.out.println("laySoLuongDaChamCongTheoMaCongDoan" + maCongDoan);
+                        		int result = bangPhanCongCongDoanDao.laySoLuongDaChamCongTheoMaCongDoan(maCongDoan);
+                        		out.writeObject(result);
+                        		out.flush();
+                        		break;
+	                    	}
+	                    	
+	                    	//xoaPhanCongCongDoanVaKhoiDs(maCongDoan, maCongNhan)
+	                    	case 6: {
+	                    		String maCongDoan = in.readUTF();
+                        		String maCongNhan = in.readUTF();
+                        		System.out.println("xoaPhanCongCongDoanVaKhoiDs:" + maCongDoan + " " + maCongNhan);
+                        		bangPhanCongCongDoanDao.xoaPhanCongCongDoanVaKhoiDs(maCongDoan, maCongNhan);
+                        		break;
+	                    	}
+	                    	
+	                    	//layDanhSachPhanCongCongDoanTheoMaCongDoan(maCongDoan);
+	                    	case 7: { 
+	                    		String maCongDoan = in.readUTF();
+                        		System.out.println("layDanhSachPhanCongCongDoanTheoMaCongDoan:" + maCongDoan);
+                        		ArrayList<BangPhanCongCongDoan> result = bangPhanCongCongDoanDao.layDanhSachPhanCongCongDoanTheoMaCongDoan(maCongDoan);
+                        		out.writeObject(result);
+                        		out.flush();
+                        		break;
+	                    	}
+	                    	
+	                    	case 8: { 
+	                    		System.out.println("Sửa phân công công đoạn:");
+                        		String json = in.readUTF();
+                        		BangPhanCongCongDoan phanCong = gson.fromJson(json, BangPhanCongCongDoan.class);
+                        		System.out.println("phan cong: " + phanCong);
+                        		bangPhanCongCongDoanDao.suaPhanCongCongDoan(phanCong);
+                        		break;
+	                    	}
+                    	}	
+					}
             }
         } catch (Exception e) {
             e.printStackTrace();

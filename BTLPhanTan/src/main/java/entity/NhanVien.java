@@ -20,6 +20,7 @@ import Enum.PhuCap;
         @NamedQuery(name = "NhanVien.getMailTheoMaNhanVien", query = "select c.email from NhanVien c where c.maNhanSu = :ma")
 })
 @Table(name = "NhanVien")
+@ToString
 public class NhanVien extends NhanSu implements Serializable {
     /**
 	 * 
@@ -126,14 +127,12 @@ public class NhanVien extends NhanSu implements Serializable {
 		this.thamNien = thamNien;
 	}
 	
-	public NhanVien() {
-		// TODO Auto-generated constructor stub
-	}
-	@Override
-	public String toString() {
-		return "NhanVien [chucVu=" + chucVu + ", taiKhoan=" + taiKhoan + ", BHYT=" + BHYT + ", BHXH=" + BHXH + ", ban="
-				+ ban + ", email=" + email + ", heSoLuong=" + heSoLuong + ", thamNien=" + thamNien + "]";
-	}
+
+//	@Override
+//	public String toString() {
+//		return "NhanVien [chucVu=" + chucVu + ", taiKhoan=" + taiKhoan + ", BHYT=" + BHYT + ", BHXH=" + BHXH + ", ban="
+//				+ ban + ", email=" + email + ", heSoLuong=" + heSoLuong + ", thamNien=" + thamNien + "]";
+//	}
 	
 	
 }
